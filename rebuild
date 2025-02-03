@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -e
+
+sudo nvim /etc/nixos/configuration.nix  # Edit config with sudo
+
+sudo alejandra /etc/nixos/configuration.nix &>/dev/null  # Format it
+
+sudo git -C /etc/nixos diff -U0 configuration.nix  # Show what changed (if /etc/nixos is a Git repo)
+
+echo "NixOS Rebuilding..."
+sudo nixos-rebuild switch &>nixos-switch.log || (
+    cat nixos-switch.log | grep --color error && false
+)
+
+gen=$(sudo nixos-rebuild list-generations | grep current)
+
+sudo git -C /etc/nixos commit -am "$gen"  # Commit changes (if using Git)
