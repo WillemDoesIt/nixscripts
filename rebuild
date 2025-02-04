@@ -1,32 +1,23 @@
 #!/usr/bin/env bash
 set -e
-trap 'echo "❌ Error encountered! Check nixos-switch.log for details." >&2' ERR
 
-sudo nvim /etc/nixos/configuration.nix
+origin=$(pwd)
 
-if command -v alejandra &>/dev/null; then
-    sudo alejandra /etc/nixos/configuration.nix &>/dev/null
-else
-    echo "⚠️  Warning: Alejandra not found. Skipping formatting."
-fi
+cd /etc/nixos
 
-if [ -d "/etc/nixos/.git" ]; then
-    sudo git -C /etc/nixos diff -U0 configuration.nix
-else
-    echo "⚠️  Warning: /etc/nixos is not a Git repository. Skipping Git operations."
-fi
+sudo -E nvim . # Edit config with sudo
 
-echo "🔄 NixOS Rebuilding..."
-logfile=$(mktemp)
-sudo nixos-rebuild switch &>"$logfile" || (grep --color error "$logfile" && rm "$logfile" && false)
-rm "$logfile"
+sudo alejandra /etc/nixos/configuration.nix &>/dev/null  # Format it
 
-gen=$(sudo nixos-rebuild list-generations --json | jq -r '.generations[] | select(.current).number')
+sudo git -C /etc/nixos diff -U0 configuration.nix  # Show what changed (if /etc/nixos is a Git repo)
+sudo git -C /etc/nixos diff -U0 packages.nix
 
-if [ -d "/etc/nixos/.git" ]; then
-    if ! sudo nixos-rebuild dry-run | grep -q "upgrading"; then
-        echo "⚠️  No system changes detected. Skipping commit."
-        exit 0
-    fi
-    sudo git -C /etc/nixos commit -am "NixOS Generation $gen"
-fi
+echo "NixOS Rebuilding..."
+cd "$origin"
+sudo nixos-rebuild switch &>nixos-switch.log || (
+    cat nixos-switch.log | grep --color error && false
+)
+
+gen=$(sudo nixos-rebuild list-generations | grep current)
+
+sudo git -C /etc/nixos commit -am "$gen"  # Commit changes (if using Git)
