@@ -2,6 +2,8 @@
 set -e
 
 origin=$(pwd)
+script_dir="$(dirname "$(realpath "$0")")"
+time_file="$script_dir/nixos-rebuild-time.txt"
 
 cd /etc/nixos
 
@@ -12,11 +14,47 @@ sudo alejandra /etc/nixos/configuration.nix &>/dev/null  # Format it
 sudo git -C /etc/nixos diff -U0 configuration.nix  # Show what changed (if /etc/nixos is a Git repo)
 sudo git -C /etc/nixos diff -U0 packages.nix
 
+# Load previous build time
+if [[ -f "$time_file" ]]; then
+    prev_time=$(cat "$time_file")
+else
+    prev_time="N/A"
+fi
+
 echo "NixOS Rebuilding..."
 cd "$origin"
-sudo nixos-rebuild switch &>nixos-switch.log || (
+
+# Spinner with elapsed time function
+spinner() {
+    local pid=$1
+    local start_time=$(date +%s)
+    local spinstr='|/-\'
+    local i=0
+
+    while kill -0 "$pid" 2>/dev/null; do
+        local current_time=$(date +%s)
+        local elapsed=$((current_time - start_time))
+        printf "\r[ %2ds / %2ds (prev) ] %s" "$elapsed" "$prev_time" "${spinstr:$i:1}"
+        i=$(( (i + 1) % 4 ))
+        sleep 0.1
+    done
+
+    local end_time=$(date +%s)
+    local total_time=$((end_time - start_time))
+    echo "$total_time" > "$time_file"  # Save the rebuild time
+    printf "\r[ %2ds / %2ds (prev) ] ✔\n" "$total_time" "$prev_time"
+}
+
+# Run nixos-rebuild switch in the background
+sudo nixos-rebuild switch &>nixos-switch.log &
+
+# Start the spinner with the PID of nixos-rebuild
+spinner $!
+
+# Check for errors
+if ! wait $!; then
     cat nixos-switch.log | grep --color error && false
-)
+fi
 
 gen=$(sudo nixos-rebuild list-generations | grep current)
 
