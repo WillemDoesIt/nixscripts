@@ -44,19 +44,33 @@ spinner() {
     printf "\r[ %2ds / %2ds (prev) ] ✔\n" "$total_time" "$prev_time"
 }
 
+log_file="/home/willemvz/Programs/nixscripts/nixos-switch.log"
+
+# check if switch log file exists
+if [ ! -f "$log_file" ]; then    
+    touch "$log_file"
+    echo "Log file was missing so a log file has been created at: $log_file"
+fi
+
 # Run nixos-rebuild switch in the background
-sudo nixos-rebuild switch &>/home/willemvz/Programs/nixscripts/nixos-switch.log &
+sudo nixos-rebuild switch &>$log_file &
 
 # Start the spinner with the PID of nixos-rebuild
 spinner $!
 
 # Check for errors
 if ! wait $!; then
-    cat nixos-switch.log | grep --color error && false
+
+    echo -e "\n\n\e[31mRebuild Failed ; _ ; \e[0m\n\n"
+
+    echo -n "Nothing commited due to "
+
+    cat $log_file | grep --color error | sort -u && false
+else
+    echo -e "\n\n\e[32mRebuild Worked ദ്ദി(˵ •̀ ᴗ - ˵ ) ✧\e[0m\n\n"
+
+    echo "Git commit:"
+    gen=$(sudo nixos-rebuild list-generations | grep current)
+
+    sudo git -C /etc/nixos commit -am "$gen"  # Commit changes (if using Git)
 fi
-
-echo -e "\n\n\e[32mRebuild Worked ദ്ദി(˵ •̀ ᴗ - ˵ ) ✧\e[0m\n\n"
-
-gen=$(sudo nixos-rebuild list-generations | grep current)
-
-sudo git -C /etc/nixos commit -am "$gen"  # Commit changes (if using Git)
