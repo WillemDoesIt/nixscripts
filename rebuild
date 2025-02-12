@@ -2,12 +2,11 @@
 set -e
 
 origin=$(pwd)
-script_dir="$(dirname "$(realpath "$0")")"
-time_file="$script_dir/nixos-rebuild-time.txt"
+time_file="/home/willemvz/Programs/nixscripts/nixos-rebuild-time.txt"
 
 cd /etc/nixos
 
-sudo -E nvim . # Edit config with sudo
+sudo -E nvim packages.nix # Edit config with sudo
 
 sudo alejandra /etc/nixos/configuration.nix &>/dev/null  # Format it
 
@@ -46,7 +45,7 @@ spinner() {
 }
 
 # Run nixos-rebuild switch in the background
-sudo nixos-rebuild switch &>nixos-switch.log &
+sudo nixos-rebuild switch &>/home/willemvz/Programs/nixscripts/nixos-switch.log &
 
 # Start the spinner with the PID of nixos-rebuild
 spinner $!
@@ -55,6 +54,8 @@ spinner $!
 if ! wait $!; then
     cat nixos-switch.log | grep --color error && false
 fi
+
+echo -e "\n\n\e[32mRebuild Worked ദ്ദി(˵ •̀ ᴗ - ˵ ) ✧\e[0m\n\n"
 
 gen=$(sudo nixos-rebuild list-generations | grep current)
 
