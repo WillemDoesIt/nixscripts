@@ -1,0 +1,7 @@
+{
+  "tips": [
+    "Want to find and delete all .tmp files?\nUse:\n\nfind . -type f -name \"*.tmp\" -delete\n\nThis removes all .tmp files in the current\ndirectory and subdirectories.",
+    "Need to find large files taking up space?\nUse:\n\nfind / -type f -size +100M\n\nThis lists all files larger than 100MB."
+  ]
+}
+

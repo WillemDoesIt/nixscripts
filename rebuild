@@ -85,7 +85,8 @@ if ! wait $nixos_pid; then
 
     cat $log_file | grep --color error | sort -u && false
 else
-    echo -e "\n\n\e[32mRebuild Worked ദ്ദി(˵ •̀ ᴗ - ˵ ) ✧\e[0m\n\n"
+    clear
+    echo -e "\n\n\e[32mRebuild Done Successfully! ദ്ദി(˵ •̀ ᴗ - ˵ ) ✧\e[0m\n\n"
 
     echo "Git commit:"
     gen=$(sudo nixos-rebuild list-generations | grep current)
